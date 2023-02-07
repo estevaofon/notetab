@@ -1,3 +1,3 @@
 # notetab
 Notepad that allows tab
-![notetab](notetab_.png "notetab")
+![notetab](notetab.png "notetab")
