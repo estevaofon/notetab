@@ -16,6 +16,7 @@ class Notepad(tk.Tk):
         self.text.bind("<Shift-Tab>", self.unindent)
         self.text.bind("<BackSpace>", self.backspace)
         self.text.bind("<Delete>", self.backspace)
+        self.search_start = '1.0'
 
         self.undo_stack = []
 
@@ -29,25 +30,45 @@ class Notepad(tk.Tk):
     def clear_search(self):
         self.text.tag_remove("sel", "1.0", "end")
 
-    def search(self, word, start="1.0", stop="end"):
+    def search(self, search_string):
         self.clear_search()
-        pos = self.text.search(word, start, stopindex=stop)
+        if self.search_start == "end":
+            self.search_start = "1.0"
+        pos = self.text.search(search_string, self.search_start, nocase=True, stopindex="end")
+        self.text.focus()
         if pos:
-            self.text.mark_set("insert", pos)
+            self.text.tag_remove("highlight", "1.0", "end")
+            self.text.tag_add("highlight", pos, f"{pos} + {len(search_string)}c")
             self.text.see("insert")
-            self.text.tag_add("sel", pos, "{}+{}c".format(pos, len(word)))
-            self.text.focus()
-            return True
-        return False
+            self.search_start = f"{pos} + {len(search_string)}c"
+            self.text.tag_add("sel", pos, "{}+{}c".format(pos, len(search_string)))
+        else:
+            self.search_start = "end"
 
     def create_widgets(self):
         # ...
-        search_frame = tk.Frame(self)
-        search_frame.pack(side="top", fill="x")
-        search_entry = tk.Entry(search_frame)
+        self.show_search_replace = tk.BooleanVar()
+        show_search_replace_checkbutton = tk.Checkbutton(self, text="Show Search/Replace", variable=self.show_search_replace, command=self.toggle_search_replace)
+        show_search_replace_checkbutton.pack(side="top", fill="x")
+        self.search_replace_frame = tk.Frame(self)
+        self.search_replace_frame.pack(side="top", fill="x")
+        search_entry = tk.Entry(self.search_replace_frame)
         search_entry.pack(side="left")
-        search_button = tk.Button(search_frame, text="Search", command=lambda: self.search(search_entry.get()))
-        search_button.pack(side="right")
+        search_button = tk.Button(self.search_replace_frame, text="Search", command=lambda: self.search(search_entry.get()))
+        search_button.pack(side="left")
+        replace_entry = tk.Entry(self.search_replace_frame)
+        replace_entry.pack(side="left")
+        replace_with_entry = tk.Entry(self.search_replace_frame)
+        replace_with_entry.pack(side="left")
+        replace_button = tk.Button(self.search_replace_frame, text="Replace", command=lambda: self.replace(replace_entry.get(), replace_with_entry.get()))
+        replace_button.pack(side="right")
+        self.toggle_search_replace()
+
+    def toggle_search_replace(self):
+        if self.show_search_replace.get():
+            self.search_replace_frame.pack(side="top", fill="x")
+        else:
+            self.search_replace_frame.pack_forget()
 
     def open_file(self):
         filepath = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
@@ -99,6 +120,15 @@ class Notepad(tk.Tk):
             if self.text.get(line_start, line_start + "4") == "    ":
                 self.text.delete(line_start, line_start + "4")
 
+    def replace(self, word, replace_with):
+        start = "1.0"
+        while True:
+            pos = self.text.search(word, start, stopindex="end")
+            if not pos:
+                break
+            self.text.delete(pos, "{}+{}c".format(pos, len(word)))
+            self.text.insert(pos, replace_with)
+            start = "{}+{}c".format(pos, len(replace_with))
 
 
 if __name__ == "__main__":
