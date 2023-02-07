@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import messagebox
 
 class Notepad(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -16,6 +17,11 @@ class Notepad(tk.Tk):
         self.text.bind("<Shift-Tab>", self.unindent)
         self.text.bind("<BackSpace>", self.backspace)
         self.text.bind("<Delete>", self.backspace)
+        Font_tuple = ("Lucida Console", 10)
+
+        # Parsed the specifications to the
+        # Text widget using .configure( ) method.
+        self.text.configure(font=Font_tuple)
         self.search_start = '1.0'
 
         self.undo_stack = []
@@ -24,8 +30,13 @@ class Notepad(tk.Tk):
         filemenu = tk.Menu(menubar, tearoff=0)
         filemenu.add_command(label="Open", command=self.open_file)
         filemenu.add_command(label="Save", command=self.save_file)
+        filemenu.add_command(label="About", command=self.show_about)
         menubar.add_cascade(label="File", menu=filemenu)
+
         self.config(menu=menubar)
+
+    def show_about(self):
+        messagebox.showinfo("About", "Notetab\n\nThis is a notepad application made with tkinter.\nAuthor: Estêvão")
 
     def clear_search(self):
         self.text.tag_remove("sel", "1.0", "end")
@@ -104,13 +115,12 @@ class Notepad(tk.Tk):
         first_line, last_line = self.get_selected_lines()
         for line in range(first_line, last_line+1):
             self.text.insert(f"{line}.0", " " * 4)
+        # self.undo_stack.append(self.text.get("1.0", tk.END))
         return 'break'
 
     def backspace(self, event=None):
         if self.text.get("insert-1c") == "    ":
             self.text.delete("insert-4c", "insert")
-        else:
-            self.text.delete("insert-1c", "insert")
         self.undo_stack.append(self.text.get("1.0", tk.END))
 
     def unindent(self, event=None):
@@ -119,6 +129,13 @@ class Notepad(tk.Tk):
             line_start = "{}.0".format(line)
             if self.text.get(line_start, line_start + "4") == "    ":
                 self.text.delete(line_start, line_start + "4")
+            elif self.text.get(line_start, line_start + "3") == "   ":
+                self.text.delete(line_start, line_start + "3")
+            elif self.text.get(line_start, line_start + "2") == "  ":
+                self.text.delete(line_start, line_start + "2")
+            elif self.text.get(line_start, line_start + "1") == " ":
+                self.text.delete(line_start, line_start + "1")
+        # self.undo_stack.append(self.text.get("1.0", tk.END))
 
     def replace(self, word, replace_with):
         start = "1.0"
