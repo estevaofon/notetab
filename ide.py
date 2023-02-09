@@ -193,7 +193,9 @@ class Notepad(tk.Tk):
             self.search_replace_frame.pack_forget()
 
     def open_file(self):
-        filepath = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+        filepath = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"),
+                                                                                  ("All Files", "*.*"),
+                                                                                  ("Python Files", "*.py")])
         if filepath:
             with open(filepath, "r") as file:
                 self.text.delete("1.0", tk.END)
