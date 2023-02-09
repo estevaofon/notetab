@@ -5,6 +5,7 @@ from collections import deque
 from tkinter import *
 import base64
 import sys
+import subprocess
 
 
 class Notepad(tk.Tk):
@@ -22,7 +23,7 @@ class Notepad(tk.Tk):
         self.text.bind("<Control-z>", self.undo)
         self.text.bind("<Control-Z>", self.undo)
         self.text.bind("<Tab>", self.indent_)
-        #self.text.bind("<Return>", lambda event: self.indent(event.widget))
+        self.text.bind("<Return>", lambda event: self.indent(event.widget))
         self.text.bind("<Shift-Tab>", self.unindent)
         self.text.bind("<BackSpace>", self.backspace)
         self.text.bind("<Delete>", self.backspace)
@@ -55,11 +56,19 @@ class Notepad(tk.Tk):
         filemenu = tk.Menu(menubar, tearoff=0)
         developer_menu = tk.Menu(menubar, tearoff=0)
         filemenu.add_command(label="New", command=self.new_file)
+        filemenu.add_command(label="New Window", command=self.new_window)
         filemenu.add_command(label="Open", command=self.open_file)
         filemenu.add_command(label="Save", command=self.save_file)
         filemenu.add_command(label="Save As", command=self.save_as)
         filemenu.add_command(label="About", command=self.show_about)
         filemenu.add_command(label="Quit", command=self.quit_program)
+
+        self.popup_menu = tk.Menu(self, tearoff=0)
+        self.popup_menu.add_command(label="Copy", command=self.copy_text)
+        self.popup_menu.add_command(label="Paste", command=self.paste_text)
+
+        self.text.bind("<Button-3>", self.show_popup_menu)
+
         developer_menu.add_command(label="Run Python", command=self.run_python)
         developer_menu.add_command(label="Encode Base64", command=self.encode_base64)
         developer_menu.add_command(label="Decode Base64", command=self.decode_base64)
@@ -69,6 +78,20 @@ class Notepad(tk.Tk):
         menubar.add_cascade(label="Developer", menu=developer_menu)
 
         self.config(menu=menubar)
+    def new_window(self):
+        import os
+        subprocess.run(["python", os.path.abspath(__file__)], shell=False)
+    def show_popup_menu(self, event):
+        self.popup_menu.post(event.x_root, event.y_root)
+
+    def copy_text(self):
+        self.clipboard_clear()
+        text = self.text.get("sel.first", "sel.last")
+        self.clipboard_append(text)
+
+    def paste_text(self):
+        text = self.clipboard_get()
+        self.text.insert("insert", text)
 
     def tagHighlight(self):
         start = "1.0"
