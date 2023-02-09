@@ -80,7 +80,7 @@ class Notepad(tk.Tk):
         self.config(menu=menubar)
     def new_window(self):
         import os
-        subprocess.run(["python", os.path.abspath(__file__)], shell=False)
+        subprocess.Popen(["python", os.path.abspath(__file__)], shell=False)
     def show_popup_menu(self, event):
         self.popup_menu.post(event.x_root, event.y_root)
 
