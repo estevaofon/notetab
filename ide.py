@@ -16,6 +16,9 @@ class Notepad(tk.Tk):
         self.stack = deque(maxlen = 10)
         self.stackcursor = 0
 
+        self.line_numbers = tk.Text(self, width=3, padx=2, pady=10, takefocus=0,
+                                    border=0, background="white", state="disabled", foreground="grey")
+        self.line_numbers.pack(side="left", fill="y")
         self.text = tk.Text(self, wrap="word", padx = 10, pady = 10)
         self.text.pack(fill="both", expand=True)
 
@@ -23,17 +26,19 @@ class Notepad(tk.Tk):
         self.text.bind("<Control-z>", self.undo)
         self.text.bind("<Control-Z>", self.undo)
         self.text.bind("<Tab>", self.indent_)
-        self.text.bind("<Return>", lambda event: self.indent(event.widget))
+        #self.text.bind("<Return>", lambda event: self.indent(event.widget))
         self.text.bind("<Shift-Tab>", self.unindent)
         self.text.bind("<BackSpace>", self.backspace)
         self.text.bind("<Delete>", self.backspace)
         self.text.bind("<Control-s>", self.save_file)
         self.text.bind("<F5>", self.run_python)
+        self.text.bind("<MouseWheel>", self.sync_scroll)
         Font_tuple = ("Lucida Console", 10)
 
         # Parsed the specifications to the
         # Text widget using .configure( ) method.
         self.text.configure(font=Font_tuple)
+        self.line_numbers.configure(font=Font_tuple)
         self.T1 = self.text
         self.T1.tag_configure("orange", foreground="orange")
         self.T1.tag_configure("blue", foreground="blue")
@@ -63,6 +68,9 @@ class Notepad(tk.Tk):
         filemenu.add_command(label="About", command=self.show_about)
         filemenu.add_command(label="Quit", command=self.quit_program)
 
+
+
+
         self.popup_menu = tk.Menu(self, tearoff=0)
         self.popup_menu.add_command(label="Copy", command=self.copy_text)
         self.popup_menu.add_command(label="Paste", command=self.paste_text)
@@ -88,6 +96,22 @@ class Notepad(tk.Tk):
         self.clipboard_clear()
         text = self.text.get("sel.first", "sel.last")
         self.clipboard_append(text)
+
+    def update_line_numbers(self, event=None):
+        self.line_numbers.configure(state="normal")
+        self.line_numbers.delete("1.0", "end")
+        line_number = 1
+        for line in self.text.get("1.0", "end").split("\n"):
+            self.line_numbers.insert("end", str(line_number) + "\n")
+            line_number += 1
+        self.line_numbers.configure(state="disabled")
+
+    def sync_scroll(self, *args):
+        self.line_numbers.yview_moveto(self.text.yview()[0])
+        self.text.yview_moveto(self.line_numbers.yview()[0])
+
+    def on_text_change(self, event=None):
+        self.update_line_numbers()
 
     def paste_text(self):
         text = self.clipboard_get()
@@ -332,6 +356,7 @@ class Notepad(tk.Tk):
             start = "{}+{}c".format(pos, len(replace_with))
 
     def update(self) -> None:
+        self.on_text_change()
         self.stackify()
         self.tagHighlight()
         self.scan()
