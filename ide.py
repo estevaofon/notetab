@@ -6,9 +6,9 @@ from tkinter import *
 import base64
 import sys
 import subprocess
-from tkinter import ttk
-
 import re
+
+
 def matches(fieldValue, acListEntry):
       pattern = re.compile('.*' + re.escape(fieldValue) + '.*', re.IGNORECASE)
       return re.match(pattern, acListEntry)
@@ -138,10 +138,10 @@ class Notepad(tk.Tk):
         # highlight the inserted word
         self.text.tag_add("sel", "insert -%dc" % len(word_to_insert), "insert")
 
-
     def new_window(self):
         import os
         subprocess.Popen(["python", os.path.abspath(__file__)], shell=False)
+
     def show_popup_menu(self, event):
         self.popup_menu.post(event.x_root, event.y_root)
 
@@ -198,6 +198,7 @@ class Notepad(tk.Tk):
 
                     if self.check(index, preIndex, postIndex):
                         self.T1.tag_add(self.tags[num], "matchStart", "matchEnd")
+
     def new_file(self):
         self.text.delete("1.0", END)
         self.filename = None
@@ -349,7 +350,6 @@ class Notepad(tk.Tk):
         index1 = widget.index("insert")
         index2 = "%s-%sc" % (index1, 1)
         prevIndex = widget.get(index2, index1)
-
         prevIndentLine = widget.index(index1 + "linestart")
         print("prevIndentLine ", prevIndentLine)
         prevIndent = self.getIndex(prevIndentLine)
@@ -403,7 +403,6 @@ class Notepad(tk.Tk):
                     break
         self.undo_stack.append(self.text.get("1.0", tk.END))
 
-
     def unindent(self, event=None):
         first_line, last_line = self.get_selected_lines()
         for line in range(first_line, last_line + 1):
@@ -451,6 +450,7 @@ class Notepad(tk.Tk):
 
     def quit_program(self):
         sys.exit()
+
 
 if __name__ == "__main__":
     notepad = Notepad()
