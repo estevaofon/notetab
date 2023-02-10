@@ -6,6 +6,12 @@ from tkinter import *
 import base64
 import sys
 import subprocess
+from tkinter import ttk
+
+import re
+def matches(fieldValue, acListEntry):
+      pattern = re.compile('.*' + re.escape(fieldValue) + '.*', re.IGNORECASE)
+      return re.match(pattern, acListEntry)
 
 
 class Notepad(tk.Tk):
@@ -33,6 +39,7 @@ class Notepad(tk.Tk):
         self.text.bind("<Control-s>", self.save_file)
         self.text.bind("<F5>", self.run_python)
         self.text.bind("<MouseWheel>", self.sync_scroll)
+        self.text.bind("<Control-space>", self.comparison)
         Font_tuple = ("Lucida Console", 10)
 
         # Parsed the specifications to the
@@ -48,8 +55,37 @@ class Notepad(tk.Tk):
 
         self.tags = ["orange", "blue", "purple", "green", "red"]
 
-        self.wordlist = [["class", "def", "for", "if", "else", "elif", "import", "from", "as", "break", "while"],
+        self.wordlist = [["class", "def", "for", "if", "else", "elif", "import", "from", "as", "break", "while", "print"],
                          ["int", "string", "float", "bool", "__init__"],
+                         ["pygame", "tkinter", "sys", "os", "mysql"],
+                         ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]]
+
+        import keyword
+        import builtins
+        self.autocompleteList = keyword.kwlist
+        self.autocompleteList.extend(dir(builtins))
+        to_delete = ['AssertionError', 'AttributeError', 'BaseException', 'BlockingIOError',
+                                     'BufferError', 'BytesWarning', 'ChildProcessError', 'ConnectionAbortedError',
+                                     'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError',
+                                     'DeprecationWarning', 'EOFError', 'Ellipsis', 'EnvironmentError',
+                                     'Exception', 'False', 'FileExistsError', 'FileNotFoundError', 'FloatingPointError',
+                                     'FutureWarning', 'GeneratorExit', 'IOError', 'ImportError', 'ImportWarning',
+                                     'IndentationError', 'IndexError', 'InterruptedError', 'IsADirectoryError',
+                                     'KeyError', 'KeyboardInterrupt', 'LookupError', 'MemoryError',
+                                     'ModuleNotFoundError', 'NameError', 'None', 'NotADirectoryError',
+                                     'NotImplemented', 'NotImplementedError', 'OSError', 'OverflowError',
+                                     'PendingDeprecationWarning', 'PermissionError', 'ProcessLookupError',
+                                     'RecursionError', 'ReferenceError', 'ResourceWarning', 'RuntimeError',
+                                     'RuntimeWarning', 'StopAsyncIteration', 'StopIteration', 'SyntaxError',
+                                     'SyntaxWarning', 'SystemError', 'SystemExit', 'TabError', 'TimeoutError',
+                                     'True', 'TypeError', 'UnboundLocalError', 'UnicodeDecodeError',
+                                     'UnicodeEncodeError', 'UnicodeError', 'UnicodeTranslateError', 'UnicodeWarning',
+                                     'UserWarning', 'ValueError', 'Warning', 'WindowsError', 'ZeroDivisionError',
+                                     '__build_class__', '__debug__', '__doc__', '__import__', '__loader__']
+        for element in to_delete:
+            self.autocompleteList.remove(element)
+        self.autocompleteList.append("self")
+        self.wordlist = [self.autocompleteList,  ["int", "string", "float", "bool", "__init__"],
                          ["pygame", "tkinter", "sys", "os", "mysql"],
                          ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]]
         self.search_start = '1.0'
@@ -69,8 +105,6 @@ class Notepad(tk.Tk):
         filemenu.add_command(label="Quit", command=self.quit_program)
 
 
-
-
         self.popup_menu = tk.Menu(self, tearoff=0)
         self.popup_menu.add_command(label="Copy", command=self.copy_text)
         self.popup_menu.add_command(label="Paste", command=self.paste_text)
@@ -86,6 +120,25 @@ class Notepad(tk.Tk):
         menubar.add_cascade(label="Developer", menu=developer_menu)
 
         self.config(menu=menubar)
+
+    def comparison(self, event=None):
+        def get_word_before_cursor():
+            index = self.text.index(tk.INSERT)
+            text_before_cursor = self.text.get(1.0, index)
+            words = text_before_cursor.split()
+            return words[-1] if words else ""
+        word = get_word_before_cursor()
+        print(word)
+        print([w for w in self.autocompleteList if matches(word, w)])
+        first_word = [w for w in self.autocompleteList if matches(word, w)][0]
+        word_to_insert = first_word[len(word):]
+
+        # insert word_to_insert at the current cursor position
+        self.text.insert(tk.INSERT, word_to_insert)
+        # highlight the inserted word
+        self.text.tag_add("sel", "insert -%dc" % len(word_to_insert), "insert")
+
+
     def new_window(self):
         import os
         subprocess.Popen(["python", os.path.abspath(__file__)], shell=False)
@@ -239,10 +292,13 @@ class Notepad(tk.Tk):
         else:
             self.search_replace_frame.pack_forget()
 
-    def open_file(self):
-        filepath = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"),
-                                                                                  ("All Files", "*.*"),
-                                                                                  ("Python Files", "*.py")])
+    def open_file(self, filename=None):
+        if filename:
+            filepath = filename
+        else:
+            filepath = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"),
+                                                                                      ("All Files", "*.*"),
+                                                                                      ("Python Files", "*.py")])
         if filepath:
             with open(filepath, "r") as file:
                 self.text.delete("1.0", tk.END)
@@ -400,4 +456,7 @@ if __name__ == "__main__":
     notepad = Notepad()
     notepad.create_widgets()
     notepad.bind("<Key>", lambda event: notepad.update())
+    args = sys.argv
+    if len(args) > 1:
+        notepad.open_file(args[1])
     notepad.mainloop()
