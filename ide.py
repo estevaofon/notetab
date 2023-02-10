@@ -26,7 +26,7 @@ class Notepad(tk.Tk):
         self.text.bind("<Control-z>", self.undo)
         self.text.bind("<Control-Z>", self.undo)
         self.text.bind("<Tab>", self.indent_)
-        #self.text.bind("<Return>", lambda event: self.indent(event.widget))
+        self.text.bind("<Return>", lambda event: self.indent(event.widget))
         self.text.bind("<Shift-Tab>", self.unindent)
         self.text.bind("<BackSpace>", self.backspace)
         self.text.bind("<Delete>", self.backspace)
@@ -289,7 +289,7 @@ class Notepad(tk.Tk):
                 return self.T1.index(index)
 
     def indent(self, widget):
-
+        # check if the previous line has a colon
         index1 = widget.index("insert")
         index2 = "%s-%sc" % (index1, 1)
         prevIndex = widget.get(index2, index1)
@@ -300,22 +300,23 @@ class Notepad(tk.Tk):
         print("prevIndent ", prevIndent)
 
         if prevIndex == ":":
+            # if the previous line has a colon, add 4 spaces
             widget.insert("insert", "\n" + "    ")
-            widget.mark_set("insert", "insert + 1 line + 5char")
+            #widget.mark_set("insert", "insert + 1 line + 4char")
 
             while widget.compare(prevIndent, ">", prevIndentLine):
                 widget.insert("insert", "    ")
-                widget.mark_set("insert", "insert + 4 chars")
+                #widget.mark_set("insert", "insert + 4 chars")
                 prevIndentLine += "+4c"
             return "break"
 
         elif prevIndent != prevIndentLine:
             widget.insert("insert", "\n")
-            widget.mark_set("insert", "insert + 1 line")
+            #widget.mark_set("insert", "insert + 1 line")
 
             while widget.compare(prevIndent, ">", prevIndentLine):
                 widget.insert("insert", "    ")
-                widget.mark_set("insert", "insert + 4 chars")
+                #widget.mark_set("insert", "insert + 4 chars")
                 prevIndentLine += "+4c"
             return "break"
 
@@ -327,9 +328,25 @@ class Notepad(tk.Tk):
         return 'break'
 
     def backspace(self, event=None):
-        if self.text.get("insert-1c") == "    ":
-            self.text.delete("insert-4c", "insert")
+        if self.text.get("insert-1c") == " " and self.text.get("insert-2c") == " "\
+                and self.text.get("insert-3c") == " " and self.text.get("insert-4c") == " ":
+            first_line, last_line = self.get_selected_lines()
+            for line in range(first_line, last_line + 1):
+                line_start = "{}.0".format(line)
+                if self.text.get(line_start, line_start + "4") == "    ":
+                    self.text.delete(line_start, line_start + "3")
+                    break
+                elif self.text.get(line_start, line_start + "3") == "   ":
+                    self.text.delete(line_start, line_start + "2")
+                    break
+                elif self.text.get(line_start, line_start + "2") == "  ":
+                    self.text.delete(line_start, line_start + "1")
+                    break
+                elif self.text.get(line_start, line_start + "1") == " ":
+                    self.text.delete(line_start, line_start + "0")
+                    break
         self.undo_stack.append(self.text.get("1.0", tk.END))
+
 
     def unindent(self, event=None):
         first_line, last_line = self.get_selected_lines()
