@@ -6,6 +6,12 @@ from tkinter import *
 import base64
 import sys
 import subprocess
+import re
+
+
+def matches(fieldValue, acListEntry):
+      pattern = re.compile('.*' + re.escape(fieldValue) + '.*', re.IGNORECASE)
+      return re.match(pattern, acListEntry)
 
 
 class Notepad(tk.Tk):
@@ -26,13 +32,14 @@ class Notepad(tk.Tk):
         self.text.bind("<Control-z>", self.undo)
         self.text.bind("<Control-Z>", self.undo)
         self.text.bind("<Tab>", self.indent_)
-        #self.text.bind("<Return>", lambda event: self.indent(event.widget))
+        self.text.bind("<Return>", lambda event: self.indent(event.widget))
         self.text.bind("<Shift-Tab>", self.unindent)
         self.text.bind("<BackSpace>", self.backspace)
         self.text.bind("<Delete>", self.backspace)
         self.text.bind("<Control-s>", self.save_file)
         self.text.bind("<F5>", self.run_python)
         self.text.bind("<MouseWheel>", self.sync_scroll)
+        self.text.bind("<Control-space>", self.comparison)
         Font_tuple = ("Lucida Console", 10)
 
         # Parsed the specifications to the
@@ -48,8 +55,37 @@ class Notepad(tk.Tk):
 
         self.tags = ["orange", "blue", "purple", "green", "red"]
 
-        self.wordlist = [["class", "def", "for", "if", "else", "elif", "import", "from", "as", "break", "while"],
+        self.wordlist = [["class", "def", "for", "if", "else", "elif", "import", "from", "as", "break", "while", "print"],
                          ["int", "string", "float", "bool", "__init__"],
+                         ["pygame", "tkinter", "sys", "os", "mysql"],
+                         ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]]
+
+        import keyword
+        import builtins
+        self.autocompleteList = keyword.kwlist
+        self.autocompleteList.extend(dir(builtins))
+        to_delete = ['AssertionError', 'AttributeError', 'BaseException', 'BlockingIOError',
+                                     'BufferError', 'BytesWarning', 'ChildProcessError', 'ConnectionAbortedError',
+                                     'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError',
+                                     'DeprecationWarning', 'EOFError', 'Ellipsis', 'EnvironmentError',
+                                     'Exception', 'False', 'FileExistsError', 'FileNotFoundError', 'FloatingPointError',
+                                     'FutureWarning', 'GeneratorExit', 'IOError', 'ImportError', 'ImportWarning',
+                                     'IndentationError', 'IndexError', 'InterruptedError', 'IsADirectoryError',
+                                     'KeyError', 'KeyboardInterrupt', 'LookupError', 'MemoryError',
+                                     'ModuleNotFoundError', 'NameError', 'None', 'NotADirectoryError',
+                                     'NotImplemented', 'NotImplementedError', 'OSError', 'OverflowError',
+                                     'PendingDeprecationWarning', 'PermissionError', 'ProcessLookupError',
+                                     'RecursionError', 'ReferenceError', 'ResourceWarning', 'RuntimeError',
+                                     'RuntimeWarning', 'StopAsyncIteration', 'StopIteration', 'SyntaxError',
+                                     'SyntaxWarning', 'SystemError', 'SystemExit', 'TabError', 'TimeoutError',
+                                     'True', 'TypeError', 'UnboundLocalError', 'UnicodeDecodeError',
+                                     'UnicodeEncodeError', 'UnicodeError', 'UnicodeTranslateError', 'UnicodeWarning',
+                                     'UserWarning', 'ValueError', 'Warning', 'WindowsError', 'ZeroDivisionError',
+                                     '__build_class__', '__debug__', '__doc__', '__import__', '__loader__']
+        for element in to_delete:
+            self.autocompleteList.remove(element)
+        self.autocompleteList.append("self")
+        self.wordlist = [self.autocompleteList,  ["int", "string", "float", "bool", "__init__"],
                          ["pygame", "tkinter", "sys", "os", "mysql"],
                          ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]]
         self.search_start = '1.0'
@@ -69,8 +105,6 @@ class Notepad(tk.Tk):
         filemenu.add_command(label="Quit", command=self.quit_program)
 
 
-
-
         self.popup_menu = tk.Menu(self, tearoff=0)
         self.popup_menu.add_command(label="Copy", command=self.copy_text)
         self.popup_menu.add_command(label="Paste", command=self.paste_text)
@@ -86,9 +120,28 @@ class Notepad(tk.Tk):
         menubar.add_cascade(label="Developer", menu=developer_menu)
 
         self.config(menu=menubar)
+
+    def comparison(self, event=None):
+        def get_word_before_cursor():
+            index = self.text.index(tk.INSERT)
+            text_before_cursor = self.text.get(1.0, index)
+            words = text_before_cursor.split()
+            return words[-1] if words else ""
+        word = get_word_before_cursor()
+        print(word)
+        print([w for w in self.autocompleteList if matches(word, w)])
+        first_word = [w for w in self.autocompleteList if matches(word, w)][0]
+        word_to_insert = first_word[len(word):]
+
+        # insert word_to_insert at the current cursor position
+        self.text.insert(tk.INSERT, word_to_insert)
+        # highlight the inserted word
+        self.text.tag_add("sel", "insert -%dc" % len(word_to_insert), "insert")
+
     def new_window(self):
         import os
         subprocess.Popen(["python", os.path.abspath(__file__)], shell=False)
+
     def show_popup_menu(self, event):
         self.popup_menu.post(event.x_root, event.y_root)
 
@@ -145,6 +198,7 @@ class Notepad(tk.Tk):
 
                     if self.check(index, preIndex, postIndex):
                         self.T1.tag_add(self.tags[num], "matchStart", "matchEnd")
+
     def new_file(self):
         self.text.delete("1.0", END)
         self.filename = None
@@ -239,10 +293,13 @@ class Notepad(tk.Tk):
         else:
             self.search_replace_frame.pack_forget()
 
-    def open_file(self):
-        filepath = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"),
-                                                                                  ("All Files", "*.*"),
-                                                                                  ("Python Files", "*.py")])
+    def open_file(self, filename=None):
+        if filename:
+            filepath = filename
+        else:
+            filepath = filedialog.askopenfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt"),
+                                                                                      ("All Files", "*.*"),
+                                                                                      ("Python Files", "*.py")])
         if filepath:
             with open(filepath, "r") as file:
                 self.text.delete("1.0", tk.END)
@@ -289,33 +346,33 @@ class Notepad(tk.Tk):
                 return self.T1.index(index)
 
     def indent(self, widget):
-
+        # check if the previous line has a colon
         index1 = widget.index("insert")
         index2 = "%s-%sc" % (index1, 1)
         prevIndex = widget.get(index2, index1)
-
         prevIndentLine = widget.index(index1 + "linestart")
         print("prevIndentLine ", prevIndentLine)
         prevIndent = self.getIndex(prevIndentLine)
         print("prevIndent ", prevIndent)
 
         if prevIndex == ":":
+            # if the previous line has a colon, add 4 spaces
             widget.insert("insert", "\n" + "    ")
-            widget.mark_set("insert", "insert + 1 line + 5char")
+            #widget.mark_set("insert", "insert + 1 line + 4char")
 
             while widget.compare(prevIndent, ">", prevIndentLine):
                 widget.insert("insert", "    ")
-                widget.mark_set("insert", "insert + 4 chars")
+                #widget.mark_set("insert", "insert + 4 chars")
                 prevIndentLine += "+4c"
             return "break"
 
         elif prevIndent != prevIndentLine:
             widget.insert("insert", "\n")
-            widget.mark_set("insert", "insert + 1 line")
+            #widget.mark_set("insert", "insert + 1 line")
 
             while widget.compare(prevIndent, ">", prevIndentLine):
                 widget.insert("insert", "    ")
-                widget.mark_set("insert", "insert + 4 chars")
+                #widget.mark_set("insert", "insert + 4 chars")
                 prevIndentLine += "+4c"
             return "break"
 
@@ -327,8 +384,23 @@ class Notepad(tk.Tk):
         return 'break'
 
     def backspace(self, event=None):
-        if self.text.get("insert-1c") == "    ":
-            self.text.delete("insert-4c", "insert")
+        if self.text.get("insert-1c") == " " and self.text.get("insert-2c") == " "\
+                and self.text.get("insert-3c") == " " and self.text.get("insert-4c") == " ":
+            first_line, last_line = self.get_selected_lines()
+            for line in range(first_line, last_line + 1):
+                line_start = "{}.0".format(line)
+                if self.text.get(line_start, line_start + "4") == "    ":
+                    self.text.delete(line_start, line_start + "3")
+                    break
+                elif self.text.get(line_start, line_start + "3") == "   ":
+                    self.text.delete(line_start, line_start + "2")
+                    break
+                elif self.text.get(line_start, line_start + "2") == "  ":
+                    self.text.delete(line_start, line_start + "1")
+                    break
+                elif self.text.get(line_start, line_start + "1") == " ":
+                    self.text.delete(line_start, line_start + "0")
+                    break
         self.undo_stack.append(self.text.get("1.0", tk.END))
 
     def unindent(self, event=None):
@@ -379,8 +451,12 @@ class Notepad(tk.Tk):
     def quit_program(self):
         sys.exit()
 
+
 if __name__ == "__main__":
     notepad = Notepad()
     notepad.create_widgets()
     notepad.bind("<Key>", lambda event: notepad.update())
+    args = sys.argv
+    if len(args) > 1:
+        notepad.open_file(args[1])
     notepad.mainloop()
