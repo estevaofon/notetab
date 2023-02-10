@@ -7,6 +7,7 @@ import base64
 import sys
 import subprocess
 import re
+import os
 
 
 def matches(fieldValue, acListEntry):
@@ -351,9 +352,7 @@ class Notepad(tk.Tk):
         index2 = "%s-%sc" % (index1, 1)
         prevIndex = widget.get(index2, index1)
         prevIndentLine = widget.index(index1 + "linestart")
-        print("prevIndentLine ", prevIndentLine)
         prevIndent = self.getIndex(prevIndentLine)
-        print("prevIndent ", prevIndent)
 
         if prevIndex == ":":
             # if the previous line has a colon, add 4 spaces
@@ -429,6 +428,9 @@ class Notepad(tk.Tk):
 
     def update(self) -> None:
         self.on_text_change()
+        if self.filename is not None:
+            if self.filename.split(".")[1] != "py":
+                return
         self.stackify()
         self.tagHighlight()
         self.scan()
