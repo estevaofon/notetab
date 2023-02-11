@@ -56,39 +56,21 @@ class Notepad(tk.Tk):
 
         self.tags = ["orange", "blue", "purple", "green", "red"]
 
-        self.wordlist = [["class", "def", "for", "if", "else", "elif", "import", "from", "as", "break", "while", "print"],
-                         ["int", "string", "float", "bool", "__init__"],
-                         ["pygame", "tkinter", "sys", "os", "mysql"],
-                         ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]]
+        self.wordlist = [['and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif',
+                          'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda',
+                          'nonlocal', 'not', 'or', 'raise', 'try', 'while', 'with', 'yield',
+                           'False', 'None', 'True', 'abs', 'all', 'any',  'bool', 'breakpoint',  'bytes', 'callable',
+                          'chr', 'classmethod', 'dict', 'dir', 'enumerate', 'eval',
+                          'exit', 'filter', 'float', 'getattr', 'globals', 'hasattr','input', 'int', 'iter', 'len',
+                          'list', 'locals', 'map', 'next', 'open', 'print', 'property', 'range', 'repr', 'reversed',
+                          'set', 'sorted', 'staticmethod', 'str', 'sum', 'super', 'tuple', 'type', 'zip'],
+                         ['int', 'float', 'bool', 'print', 'input', 'len', 'range', 'append', 'pop'],
+                         ['self', 'return', 'pass']]
+        def flatten(l):
+            return [item for sublist in l for item in sublist]
+        self.autocompleteList = flatten(self.wordlist)
 
-        import keyword
-        import builtins
-        self.autocompleteList = keyword.kwlist
-        self.autocompleteList.extend(dir(builtins))
-        to_delete = ['AssertionError', 'AttributeError', 'BaseException', 'BlockingIOError',
-                                     'BufferError', 'BytesWarning', 'ChildProcessError', 'ConnectionAbortedError',
-                                     'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError',
-                                     'DeprecationWarning', 'EOFError', 'Ellipsis', 'EnvironmentError',
-                                     'Exception', 'False', 'FileExistsError', 'FileNotFoundError', 'FloatingPointError',
-                                     'FutureWarning', 'GeneratorExit', 'IOError', 'ImportError', 'ImportWarning',
-                                     'IndentationError', 'IndexError', 'InterruptedError', 'IsADirectoryError',
-                                     'KeyError', 'KeyboardInterrupt', 'LookupError', 'MemoryError',
-                                     'ModuleNotFoundError', 'NameError', 'None', 'NotADirectoryError',
-                                     'NotImplemented', 'NotImplementedError', 'OSError', 'OverflowError',
-                                     'PendingDeprecationWarning', 'PermissionError', 'ProcessLookupError',
-                                     'RecursionError', 'ReferenceError', 'ResourceWarning', 'RuntimeError',
-                                     'RuntimeWarning', 'StopAsyncIteration', 'StopIteration', 'SyntaxError',
-                                     'SyntaxWarning', 'SystemError', 'SystemExit', 'TabError', 'TimeoutError',
-                                     'True', 'TypeError', 'UnboundLocalError', 'UnicodeDecodeError',
-                                     'UnicodeEncodeError', 'UnicodeError', 'UnicodeTranslateError', 'UnicodeWarning',
-                                     'UserWarning', 'ValueError', 'Warning', 'WindowsError', 'ZeroDivisionError',
-                                     '__build_class__', '__debug__', '__doc__', '__import__', '__loader__']
-        for element in to_delete:
-            self.autocompleteList.remove(element)
-        self.autocompleteList.append("self")
-        self.wordlist = [self.autocompleteList,  ["int", "string", "float", "bool", "__init__"],
-                         ["pygame", "tkinter", "sys", "os", "mysql"],
-                         ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]]
+        print(self.wordlist)
         self.search_start = '1.0'
 
         self.undo_stack = []
@@ -302,7 +284,7 @@ class Notepad(tk.Tk):
                                                                                       ("All Files", "*.*"),
                                                                                       ("Python Files", "*.py")])
         if filepath:
-            with open(filepath, "r") as file:
+            with open(filepath, "r", encoding='utf8') as file:
                 self.text.delete("1.0", tk.END)
                 self.text.insert("1.0", file.read().replace("\t", "    "))
                 self.undo_stack = []
@@ -319,7 +301,7 @@ class Notepad(tk.Tk):
     def save_as(self):
         filename = filedialog.asksaveasfilename(defaultextension=".txt")
         if filename:
-            with open(filename, "w") as f:
+            with open(filename, "w", encoding='utf8') as f:
                 f.write(self.text.get("1.0", "end"))
             self.filename = filename
 
@@ -428,9 +410,6 @@ class Notepad(tk.Tk):
 
     def update(self) -> None:
         self.on_text_change()
-        if self.filename is not None:
-            if self.filename.split(".")[1] != "py":
-                return
         self.stackify()
         self.tagHighlight()
         self.scan()
