@@ -8,11 +8,9 @@ import sys
 import subprocess
 import re
 import os
-
-
-def matches(fieldValue, acListEntry):
-      pattern = re.compile('.*' + re.escape(fieldValue) + '.*', re.IGNORECASE)
-      return re.match(pattern, acListEntry)
+from tkinter import ttk
+import flake8.api
+import io
 
 
 class Notepad(tk.Tk):
@@ -20,6 +18,7 @@ class Notepad(tk.Tk):
         tk.Tk.__init__(self, *args, **kwargs)
 
         self.title("Notetab")
+        self.geometry("700x400")
         self.stack = deque(maxlen = 10)
         self.stackcursor = 0
 
@@ -28,7 +27,6 @@ class Notepad(tk.Tk):
         self.line_numbers.pack(side="left", fill="y")
         self.text = tk.Text(self, wrap="word", padx = 10, pady = 10)
         self.text.pack(fill="both", expand=True)
-
 
         self.text.bind("<Control-z>", self.undo)
         self.text.bind("<Control-Z>", self.undo)
@@ -41,6 +39,7 @@ class Notepad(tk.Tk):
         self.text.bind("<F5>", self.run_python)
         self.text.bind("<MouseWheel>", self.sync_scroll)
         self.text.bind("<Control-space>", self.comparison)
+        self.text.bind("<space>", self.acept_completion)
         Font_tuple = ("Lucida Console", 10)
 
         # Parsed the specifications to the
@@ -54,41 +53,26 @@ class Notepad(tk.Tk):
         self.T1.tag_configure("green", foreground="green")
         self.T1.tag_configure("red", foreground="red")
 
+        scrollbar = tk.Scrollbar(self.text, orient='vertical', command=self.text.yview)
+        scrollbar.pack(side='right', fill='y')
+
         self.tags = ["orange", "blue", "purple", "green", "red"]
 
-        self.wordlist = [["class", "def", "for", "if", "else", "elif", "import", "from", "as", "break", "while", "print"],
-                         ["int", "string", "float", "bool", "__init__"],
-                         ["pygame", "tkinter", "sys", "os", "mysql"],
-                         ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]]
+        self.wordlist = [['and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif',
+                          'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda',
+                          'nonlocal', 'not', 'or', 'raise', 'try', 'while', 'with', 'yield',
+                           'False', 'None', 'True', 'abs', 'all', 'any',  'bool', 'breakpoint',  'bytes', 'callable',
+                          'chr', 'classmethod', 'dict', 'dir', 'enumerate', 'eval',
+                          'exit', 'filter', 'float', 'getattr', 'globals', 'hasattr','input', 'int', 'iter', 'len',
+                          'list', 'locals', 'map', 'next', 'open', 'print', 'property', 'range', 'repr', 'reversed',
+                          'set', 'sorted', 'staticmethod', 'str', 'sum', 'super', 'tuple', 'type', 'zip'],
+                         ['int', 'float', 'bool', 'print', 'input', 'len', 'range', 'append', 'pop'],
+                         ['self', 'return', 'pass']]
+        def flatten(l):
+            return [item for sublist in l for item in sublist]
+        self.autocompleteList = flatten(self.wordlist)
 
-        import keyword
-        import builtins
-        self.autocompleteList = keyword.kwlist
-        self.autocompleteList.extend(dir(builtins))
-        to_delete = ['AssertionError', 'AttributeError', 'BaseException', 'BlockingIOError',
-                                     'BufferError', 'BytesWarning', 'ChildProcessError', 'ConnectionAbortedError',
-                                     'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError',
-                                     'DeprecationWarning', 'EOFError', 'Ellipsis', 'EnvironmentError',
-                                     'Exception', 'False', 'FileExistsError', 'FileNotFoundError', 'FloatingPointError',
-                                     'FutureWarning', 'GeneratorExit', 'IOError', 'ImportError', 'ImportWarning',
-                                     'IndentationError', 'IndexError', 'InterruptedError', 'IsADirectoryError',
-                                     'KeyError', 'KeyboardInterrupt', 'LookupError', 'MemoryError',
-                                     'ModuleNotFoundError', 'NameError', 'None', 'NotADirectoryError',
-                                     'NotImplemented', 'NotImplementedError', 'OSError', 'OverflowError',
-                                     'PendingDeprecationWarning', 'PermissionError', 'ProcessLookupError',
-                                     'RecursionError', 'ReferenceError', 'ResourceWarning', 'RuntimeError',
-                                     'RuntimeWarning', 'StopAsyncIteration', 'StopIteration', 'SyntaxError',
-                                     'SyntaxWarning', 'SystemError', 'SystemExit', 'TabError', 'TimeoutError',
-                                     'True', 'TypeError', 'UnboundLocalError', 'UnicodeDecodeError',
-                                     'UnicodeEncodeError', 'UnicodeError', 'UnicodeTranslateError', 'UnicodeWarning',
-                                     'UserWarning', 'ValueError', 'Warning', 'WindowsError', 'ZeroDivisionError',
-                                     '__build_class__', '__debug__', '__doc__', '__import__', '__loader__']
-        for element in to_delete:
-            self.autocompleteList.remove(element)
-        self.autocompleteList.append("self")
-        self.wordlist = [self.autocompleteList,  ["int", "string", "float", "bool", "__init__"],
-                         ["pygame", "tkinter", "sys", "os", "mysql"],
-                         ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]]
+        print(self.wordlist)
         self.search_start = '1.0'
 
         self.undo_stack = []
@@ -115,6 +99,12 @@ class Notepad(tk.Tk):
         developer_menu.add_command(label="Run Python", command=self.run_python)
         developer_menu.add_command(label="Encode Base64", command=self.encode_base64)
         developer_menu.add_command(label="Decode Base64", command=self.decode_base64)
+        developer_menu.add_command(label="Lint Code", command=self.lint_code)
+
+
+
+        #  communicate back to the scrollbar
+        self.text['yscrollcommand'] = scrollbar.set
 
 
         menubar.add_cascade(label="File", menu=filemenu)
@@ -122,6 +112,26 @@ class Notepad(tk.Tk):
 
         self.config(menu=menubar)
 
+    def lint_code(self, event=None):
+        # run flake8 on the file
+        os.system("flake8 " + self.filename + " > lint.txt")
+        # open the file
+        with open("lint.txt", "r") as f:
+            # read the file
+            lint = f.read()
+            # if there is no lint
+            if lint == "":
+                # tell the user
+                messagebox.showinfo("Lint", "No lint found")
+            else:
+                # else show the lint
+                messagebox.showinfo("Lint", lint)
+
+
+    @staticmethod
+    def matches(fieldValue, acListEntry):
+        pattern = re.compile('.*' + re.escape(fieldValue) + '.*', re.IGNORECASE)
+        return re.match(pattern, acListEntry)
     def comparison(self, event=None):
         def get_word_before_cursor():
             index = self.text.index(tk.INSERT)
@@ -130,14 +140,19 @@ class Notepad(tk.Tk):
             return words[-1] if words else ""
         word = get_word_before_cursor()
         print(word)
-        print([w for w in self.autocompleteList if matches(word, w)])
-        first_word = [w for w in self.autocompleteList if matches(word, w)][0]
-        word_to_insert = first_word[len(word):]
-
+        print([w for w in self.autocompleteList if self.matches(word, w)])
+        try:
+            first_word = [w for w in self.autocompleteList if self.matches(word, w)][0]
+            self.word_to_insert = first_word[len(word):]
+        except IndexError:
+            self.word_to_insert = ""
         # insert word_to_insert at the current cursor position
-        self.text.insert(tk.INSERT, word_to_insert)
+        self.text.insert(tk.INSERT, self.word_to_insert)
         # highlight the inserted word
-        self.text.tag_add("sel", "insert -%dc" % len(word_to_insert), "insert")
+        self.text.tag_add("sel", "insert -%dc" % len(self.word_to_insert), "insert")
+    def acept_completion(self, event=None):
+        # remove highlighted marker
+        self.text.tag_remove("sel", "1.0", tk.END)
 
     def new_window(self):
         import os
@@ -302,16 +317,17 @@ class Notepad(tk.Tk):
                                                                                       ("All Files", "*.*"),
                                                                                       ("Python Files", "*.py")])
         if filepath:
-            with open(filepath, "r") as file:
+            with open(filepath, "r", encoding='utf-8') as file:
                 self.text.delete("1.0", tk.END)
                 self.text.insert("1.0", file.read().replace("\t", "    "))
                 self.undo_stack = []
                 self.filename = filepath
                 self.update()
+        self.title(f"Notetab - {self.filename}")
 
     def save_file(self, event=None):
         if self.filename:
-            with open(self.filename, "w") as f:
+            with open(self.filename, "w", encoding='utf-8') as f:
                 f.write(self.text.get("1.0", "end"))
         else:
             self.save_as()
@@ -319,7 +335,7 @@ class Notepad(tk.Tk):
     def save_as(self):
         filename = filedialog.asksaveasfilename(defaultextension=".txt")
         if filename:
-            with open(filename, "w") as f:
+            with open(filename, "w", encoding='utf-8') as f:
                 f.write(self.text.get("1.0", "end"))
             self.filename = filename
 
@@ -428,9 +444,6 @@ class Notepad(tk.Tk):
 
     def update(self) -> None:
         self.on_text_change()
-        if self.filename is not None:
-            if self.filename.split(".")[1] != "py":
-                return
         self.stackify()
         self.tagHighlight()
         self.scan()
