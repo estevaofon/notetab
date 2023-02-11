@@ -331,6 +331,8 @@ class Notepad(tk.Tk):
                 f.write(self.text.get("1.0", "end"))
         else:
             self.save_as()
+        self.title(f"Notetab - {self.filename}")
+
 
     def save_as(self):
         filename = filedialog.asksaveasfilename(defaultextension=".txt")
@@ -338,6 +340,7 @@ class Notepad(tk.Tk):
             with open(filename, "w", encoding='utf-8') as f:
                 f.write(self.text.get("1.0", "end"))
             self.filename = filename
+        self.title(f"Notetab - {self.filename}")
 
     def undo(self, event=None):
         if self.undo_stack:
