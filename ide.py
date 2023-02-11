@@ -218,6 +218,7 @@ class Notepad(tk.Tk):
     def new_file(self):
         self.text.delete("1.0", END)
         self.filename = None
+        self.title(f"Notetab")
 
     def check(self, index, pre, post):
         letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
